@@ -1,0 +1,124 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # 名字必須是 <plural>.<group>
+  name: quarkusapps.com.example
+spec:
+  # group 用來組織 CRD，通常是公司或組織的域名
+  group: com.example
+  # CRD 的作用域，可以是 Namespaced 或 Cluster
+  scope: Namespaced
+  names:
+    # 複數名稱，用於 API URL: /apis/<group>/<version>/<plural>
+    plural: quarkusapps
+    # 單數名稱，用於 API URL 和 kubectl 命令
+    singular: quarkusapp
+    # 在 CRD schema 中使用的 kind
+    kind: QuarkusApp
+    # kubectl 的簡寫
+    shortNames:
+    - qapp
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                frontend:
+                  type: object
+                  properties:
+                    image:
+                      type: string
+                      description: "Frontend 應用程式的容器映像檔"
+                    replicas:
+                      type: object
+                      properties:
+                        min:
+                          type: integer
+                          default: 1
+                        max:
+                          type: integer
+                          default: 5
+                      description: "HPA 的最小和最大副本數"
+                    cpuThreshold:
+                      type: integer
+                      default: 50
+                      description: "觸發 HPA 擴展的 CPU 使用率百分比"
+                    port:
+                      type: integer
+                      default: 80
+                      description: "Frontend 容器監聽的埠號"
+                    serviceType:
+                      type: string
+                      default: "ClusterIP"
+                      description: "Frontend Service 的類型"
+                backend:
+                  type: object
+                  properties:
+                    image:
+                      type: string
+                      description: "Backend 應用程式的容器映像檔"
+                    replicas:
+                      type: integer
+                      default: 3
+                      description: "Backend 的副本數"
+                    port:
+                      type: integer
+                      default: 8000
+                      description: "Backend 容器監聽的埠號"
+                    serviceType:
+                      type: string
+                      default: "ClusterIP"
+                      description: "Backend Service 的類型"
+                database:
+                  type: object
+                  description: "定義由 MySQL Operator 管理的 InnoDBCluster"
+                  properties:
+                    instances:
+                      type: integer
+                      default: 3
+                      description: "MySQL InnoDBCluster 的節點數量"
+                    version:
+                      type: string
+                      default: "8.0.34"
+                      description: "要使用的 MySQL Server 版本"
+                    secretName:
+                      type: string
+                      description: "MySQL Operator 將會創建此 Secret 來存放 root 密碼"
+                    router:
+                      type: object
+                      description: "Router 節點設定"
+                      properties:
+                        instances:
+                          type: integer
+                          default: 1
+                          description: "Router 節點數量"
+                ingress:
+                  type: object
+                  description: "管理應用程式的 Ingress 資源"
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                      description: "是否為此應用程式啟用 Ingress"
+                    host:
+                      type: string
+                      description: "Ingress 的主機名稱 (例如 aries.tw)"
+              required: ["frontend", "backend", "database"]
+            status:
+              type: object
+              properties:
+                areResourcesReady:
+                  type: boolean
+                  description: "所有相關資源是否都已就緒"
+                dbReady:
+                  type: boolean
+                backendReady:
+                  type: boolean
+                frontendReady:
+                  type: boolean

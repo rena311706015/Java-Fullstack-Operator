@@ -1,0 +1,25 @@
+apiVersion: com.example/v1alpha1
+kind: QuarkusApp
+metadata:
+  name: my-production-app
+spec:
+  frontend:
+    image: frontend
+    replicas:
+      min: 1
+      max: 5
+    cpuThreshold: 50
+    port: 80
+  backend:
+    image: backend 
+    replicas: 3
+    port: 8000
+  database:
+    instances: 1
+    router:
+      instances: 1
+    version: "8.0.34"
+    secretName: "mysql-secret"
+  ingress:
+    enabled: true
+    host: "quarkusapp.minikube.local"
