@@ -58,9 +58,7 @@ public class QuarkusAppReconciler implements Reconciler<QuarkusApp>{
             dbClusterOpt.get().getStatus() != null &&
             dbClusterOpt.get().getStatus().getCluster() != null &&
             "ONLINE".equalsIgnoreCase(dbClusterOpt.get().getStatus().getCluster().getStatus())) {
-            
             status.setDbReady(true);
-
         } else {            
             System.out.println("DB is not ready, reconciling later...");
             status.setDbReady(false);
@@ -68,17 +66,38 @@ public class QuarkusAppReconciler implements Reconciler<QuarkusApp>{
         }
 
         if (status.isDbReady()) {
-            reconcileBackendService(appName, namespace, spec.getBackend(), resource);
-            reconcileBackendDeployment(appName, namespace, spec.getBackend(), spec.getDatabase(), resource);
+            final String routerDeploymentName = appName + "-db-cluster-router";
 
-            reconcileFrontendService(appName, namespace, spec.getFrontend(), resource);
-            reconcileFrontendDeployment(appName, namespace, spec.getFrontend(), resource);
-            reconcileFrontendHpa(appName, namespace, spec.getFrontend(), resource);
-            
-            reconcileIngress(appName, namespace, spec, resource);
-            status.setAreResourcesReady(true);
+            Deployment routerDeployment = context.getClient().apps().deployments()
+                    .inNamespace(namespace)
+                    .withName(routerDeploymentName)
+                    .get();
+
+            boolean isRouterReady = false;
+            if (routerDeployment != null && routerDeployment.getStatus() != null) {
+                Integer readyReplicas = routerDeployment.getStatus().getReadyReplicas();
+                if (readyReplicas != null && readyReplicas > 0) {
+                    isRouterReady = true;
+                }
+            }
+
+            if (isRouterReady) {
+                System.out.println("Router Deployment '" + routerDeploymentName + "' is ready. Reconciling all resources...");
+                reconcileBackendService(appName, namespace, spec.getBackend(), resource);
+                reconcileBackendDeployment(appName, namespace, spec.getBackend(), spec.getDatabase(), resource);
+
+                reconcileFrontendService(appName, namespace, spec.getFrontend(), resource);
+                reconcileFrontendDeployment(appName, namespace, spec.getFrontend(), resource);
+                reconcileFrontendHpa(appName, namespace, spec.getFrontend(), resource);
+                
+                reconcileIngress(appName, namespace, spec, resource);
+                status.setAreResourcesReady(true);
+
+            } else {
+                System.out.println("Router Deployment '" + routerDeploymentName + "' is not ready, reconciling later...");
+                return UpdateControl.patchStatus(resource).rescheduleAfter(15, TimeUnit.SECONDS);
+            }
         }
-        reconcileIngress(appName, namespace, spec, resource);
 
         return UpdateControl.patchStatus(resource);
     }

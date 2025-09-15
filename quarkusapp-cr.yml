@@ -4,14 +4,14 @@ metadata:
   name: my-production-app
 spec:
   frontend:
-    image: frontend
+    image: renawang0913/frontend-demo
     replicas:
       min: 1
       max: 5
     cpuThreshold: 50
     port: 80
   backend:
-    image: backend 
+    image: renawang0913/backend-demo
     replicas: 3
     port: 8000
   database:
