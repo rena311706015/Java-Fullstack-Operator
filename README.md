@@ -108,4 +108,4 @@
     
     `kubectl run --rm -it myshell \
     --image=container-registry.oracle.com/mysql/community-operator \
-    -- mysqlsh root@my-production-app-db-cluster:6446/mysql --password=asuspassword --sql`
+    -- mysqlsh root@my-production-app-db-cluster:6446/mysql --password=password --sql`
